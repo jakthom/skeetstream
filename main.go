@@ -17,19 +17,19 @@ import (
 const (
 	// Jetstream
 	SCHEME                 string = "wss"
-	DEFAULT_JETSTREAM_HOST string = "jetstream2.us-east.bsky.network"
+	DEFAULT_JETSTREAM_HOST string = "jetstream2.us-east.bsky.network" // Make this configurable
 	SUBSCRIBE              string = "/subscribe"
 	// Data
 	DATA_DIR string = "data/"
 	// Buffers(ish)
-	DEFAULT_PURGE_AFTER int = 10000
+	DEFAULT_PURGE_AFTER int = 100000 // Make this configurable
 )
 
 type Bluestream struct {
 	host       string
 	conn       *websocket.Conn
 	purgeAfter int
-	// skeets chan []interface{} // TODO -> do this async with goroutines
+	// skeets chan []interface{} // TODO -> do this async with goroutines when not being lazy
 }
 
 func ensureDir(dir string) error {
@@ -66,12 +66,11 @@ func purgeToFile(skeets []interface{}) {
 func (b *Bluestream) initialize() {
 	log.Info().Msg("initializing skeetstream")
 	// Set config and whatnot
-	b.host = DEFAULT_JETSTREAM_HOST // Get from env or something
-	b.purgeAfter = DEFAULT_PURGE_AFTER
+	b.host = DEFAULT_JETSTREAM_HOST    // Get from env or something
+	b.purgeAfter = DEFAULT_PURGE_AFTER // Get from env or something
 
 	// Dial websocket
 	url := url.URL{Scheme: SCHEME, Host: b.host, Path: SUBSCRIBE}
-
 	conn, _, err := websocket.DefaultDialer.Dial(url.String(), nil)
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not dial websocket")
@@ -87,7 +86,10 @@ func (b *Bluestream) run() {
 	i := 0
 	skeets := make([]interface{}, 0)
 	for {
+		// Read skeets
 		_, message, err := b.conn.ReadMessage()
+
+		// Shove skeets into an interface
 		if err != nil {
 			log.Error().Err(err).Msg("could not read message")
 		}
@@ -99,6 +101,8 @@ func (b *Bluestream) run() {
 		}
 		skeets = append(skeets, data)
 		i++
+
+		// Purge skeets to file
 		if i == b.purgeAfter {
 			purgeToFile(skeets)
 			skeets = make([]interface{}, 0)
@@ -108,6 +112,7 @@ func (b *Bluestream) run() {
 }
 
 func (b *Bluestream) shutdown() {
+	// Clean up ws and whatnot
 	b.conn.Close()
 	log.Info().Msg("shut down")
 }
