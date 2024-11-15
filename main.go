@@ -40,9 +40,9 @@ func ensureDir(dir string) error {
 }
 
 func purgeToFile(skeets []interface{}) {
-	log.Info().Msg("purging skeets to file")
 	now := time.Now().UTC().Format(time.RFC3339)
-	filename := DATA_DIR + now + "_skeets.json.gz"
+	filename := DATA_DIR + now + "_skeets.jsonl.gz"
+	log.Info().Msg("purging skeets to file: " + filename)
 	file, err := os.Create(filename)
 	if err != nil {
 		log.Error().Err(err).Msg("could not create file")
@@ -58,17 +58,13 @@ func purgeToFile(skeets []interface{}) {
 			log.Error().Err(err).Msg("could not encode skeet")
 			continue
 		}
-		_, err = gz.Write([]byte("\n"))
-		if err != nil {
-			log.Error().Err(err).Msg("could not write new line")
-			continue
-		}
 	}
 	gz.Close()
 	file.Close()
 }
 
 func (b *Bluestream) initialize() {
+	log.Info().Msg("initializing skeetstream")
 	// Set config and whatnot
 	b.host = DEFAULT_JETSTREAM_HOST // Get from env or something
 	b.purgeAfter = DEFAULT_PURGE_AFTER
@@ -87,7 +83,7 @@ func (b *Bluestream) initialize() {
 }
 
 func (b *Bluestream) run() {
-
+	log.Info().Msg("running skeetstream")
 	i := 0
 	skeets := make([]interface{}, 0)
 	for {
